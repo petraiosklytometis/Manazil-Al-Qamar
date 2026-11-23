@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mansões Lunares</title>
+<meta name="description" content="Em que mansão lunar árabe a Lua está agora.">
+<meta name="theme-color" content="#081020">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Manrope:wght@400;500;700&display=swap">
+<style>
+  /* Layout: roda das 28 mansões à esquerda (fixa), ficha da mansão à direita; em telas estreitas empilha.
+     Fundo com treliça de estrelas de oito pontas (khatam), arco pontiagudo no nome árabe. */
+  :root {
+    --bg: #081020;
+    --surface: #0e1a33;
+    --raised: #14244a;
+    --line: #26385f;
+    --fg: #e8f0ff;
+    --muted: #93a6c9;
+    --accent: #6fd6e0;
+    --accent-2: #a9b8ff;
+    --bad: #c3a8ff;
+    --pattern: #162646;
+    --font-display: "Amiri", "Noto Naskh Arabic", "Times New Roman", serif;
+    --font-body: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #edf3fb; --surface: #f8fbff; --raised: #e1eaf7; --line: #bccde5;
+      --fg: #0e1b36; --muted: #4c6183; --accent: #08717f; --accent-2: #3a52bd;
+      --bad: #6a3db3; --pattern: #d0dcee; color-scheme: light;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #edf3fb; --surface: #f8fbff; --raised: #e1eaf7; --line: #bccde5;
+    --fg: #0e1b36; --muted: #4c6183; --accent: #08717f; --accent-2: #3a52bd;
+    --bad: #6a3db3; --pattern: #d0dcee; color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.55;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 20px 36px;
+    min-height: 100%;
+  }
+  .lattice { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0;
+    -webkit-mask-image: radial-gradient(ellipse at 50% 30%, #000 0%, transparent 75%);
+            mask-image: radial-gradient(ellipse at 50% 30%, #000 0%, transparent 75%); }
+  .lattice .ln { fill: none; stroke: var(--pattern); stroke-width: 1; }
+  .page { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; display: grid; gap: 28px; }
+
+  header { display: grid; justify-items: center; text-align: center; gap: 4px; padding-top: 8px; }
+  .eyebrow { margin: 0; font-size: 11px; letter-spacing: .28em; text-transform: uppercase; color: var(--accent); }
+  h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: clamp(34px, 7vw, 52px); line-height: 1.1; text-wrap: balance; }
+  .ar-title { margin: 0; font-family: var(--font-display); font-size: 26px; color: var(--accent-2); }
+  .orn { display: flex; align-items: center; gap: 12px; width: min(320px, 80%); margin-top: 8px; color: var(--accent); }
+  .orn::before, .orn::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--line)); }
+  .orn::after { transform: scaleX(-1); }
+  .orn svg { width: 16px; height: 16px; flex: none; }
+
+  .status { display: grid; justify-items: center; gap: 2px; text-align: center; }
+  .status b { font-weight: 500; color: var(--fg); }
+  .status span { color: var(--muted); font-size: 13px; }
+  .status .live { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 var(--accent); animation: pulse 2.4s infinite; }
+  .dot.off { background: var(--muted); animation: none; box-shadow: none; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent); } 100% { box-shadow: 0 0 0 10px transparent; } }
+
+  .stage { display: grid; gap: 28px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+  @media (min-width: 960px) {
+    .stage { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .wheel-col { position: sticky; top: 16px; }
+  }
+  .wheel-col { display: grid; gap: 16px; min-width: 0; }
+  .wheel { width: 100%; max-width: 520px; margin: 0 auto; display: block; overflow: visible; }
+  .wheel text { font-family: var(--font-body); }
+  .seg { fill: color-mix(in srgb, var(--raised) 70%, transparent); stroke: var(--line); stroke-width: 1; cursor: pointer; transition: fill .2s; }
+  .seg:hover { fill: color-mix(in srgb, var(--accent) 16%, var(--raised)); }
+  .seg:focus-visible { outline: none; stroke: var(--accent-2); stroke-width: 2; }
+  .seg.cur { fill: color-mix(in srgb, var(--accent) 38%, var(--raised)); stroke: var(--accent); }
+  .seg.sel { stroke: var(--accent-2); stroke-width: 2.2; }
+  .segnum { fill: var(--muted); font-size: 11px; pointer-events: none; font-variant-numeric: tabular-nums; }
+  .segnum.cur { fill: var(--fg); font-weight: 700; }
+  .sign { fill: var(--muted); font-size: 14px; }
+  .ring { fill: none; stroke: var(--line); stroke-width: 1; }
+  .star-o { fill: none; stroke: var(--accent-2); stroke-width: 1.2; opacity: .8; }
+  .star-i { fill: color-mix(in srgb, var(--accent) 10%, transparent); stroke: var(--accent); stroke-width: 1; }
+  .hub-n { fill: var(--fg); font-family: var(--font-display); font-size: 44px; font-weight: 700; }
+  .hub-s { fill: var(--muted); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
+  .moon-base { fill: var(--raised); stroke: var(--fg); stroke-width: 1; }
+  .moon-lit { fill: var(--fg); }
+  .moon-glow { fill: color-mix(in srgb, var(--accent) 35%, transparent); }
+
+  .controls { display: grid; gap: 10px; justify-items: center; }
+  .btns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  button, input[type="datetime-local"] {
+    font: inherit; font-size: 13px; color: var(--fg); background: var(--surface);
+    border: 1px solid var(--line); padding: 8px 14px; min-height: 40px;
+    border-radius: 4px 14px 4px 14px;
+  }
+  button { cursor: pointer; transition: border-color .2s, background .2s; }
+  button:hover { border-color: var(--accent); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+  button.primary { background: color-mix(in srgb, var(--accent) 20%, var(--surface)); border-color: var(--accent); }
+  .when-label { font-size: 12px; color: var(--muted); display: grid; gap: 4px; justify-items: center; }
+
+  .detail { min-width: 0; display: grid; gap: 20px; }
+  .card { background: var(--surface); border: 1px solid var(--line); padding: 20px; border-radius: 4px 24px 4px 24px; display: grid; gap: 18px; min-width: 0; }
+  .arch-wrap { display: grid; justify-items: center; }
+  .arch { width: min(100%, 280px); height: auto; display: block; }
+  .arch .frame { fill: color-mix(in srgb, var(--raised) 60%, transparent); stroke: var(--accent); stroke-width: 1.5; }
+  .arch .frame2 { fill: none; stroke: var(--line); stroke-width: 1; }
+  .arch .n { fill: var(--accent-2); font-family: var(--font-body); font-size: 11px; letter-spacing: .24em; }
+  .arch .ar { fill: var(--fg); font-family: var(--font-display); font-weight: 700; }
+  .names { display: grid; gap: 2px; justify-items: center; text-align: center; }
+  .names h2 { margin: 0; font-family: var(--font-display); font-size: 30px; line-height: 1.15; text-wrap: balance; }
+  .names .pic { margin: 0; font-family: var(--font-display); font-style: italic; color: var(--muted); font-size: 17px; }
+  .names .epi { margin: 6px 0 0; color: var(--accent); font-size: 12px; letter-spacing: .2em; text-transform: uppercase; }
+  .tag { display: inline-block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; padding: 3px 10px; border: 1px solid var(--line); color: var(--muted); border-radius: 999px; }
+  .tag.now { color: var(--accent); border-color: var(--accent); }
+  .range { text-align: center; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .range b { color: var(--fg); font-weight: 500; }
+
+  .prog { display: grid; gap: 8px; }
+  .bar { height: 6px; background: var(--raised); border-radius: 999px; position: relative; overflow: hidden; }
+  .bar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, var(--accent-2), var(--accent)); border-radius: 999px; }
+  .times { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+  .times b { display: block; color: var(--fg); font-weight: 500; font-size: 13px; }
+  .times > div:last-child { text-align: right; }
+
+  .txt { margin: 0; max-width: 62ch; }
+  .lists { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+  .lists h3 { margin: 0 0 6px; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; }
+  .lists .f h3 { color: var(--accent); }
+  .lists .u h3 { color: var(--bad); }
+  .lists ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+  .lists li { padding-left: 16px; position: relative; font-size: 14px; }
+  .lists li::before { content: ""; position: absolute; left: 0; top: .62em; width: 7px; height: 7px; transform: rotate(45deg); background: currentColor; }
+  .lists .f li::before { color: var(--accent); }
+  .lists .u li::before { color: var(--bad); }
+  .lists .none { color: var(--muted); font-size: 13px; }
+  .angel { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 14px; font-size: 13px; color: var(--muted); }
+  .angel b { color: var(--fg); font-weight: 500; }
+
+  .back { justify-self: center; }
+
+  .all h2 { margin: 0 0 12px; font-family: var(--font-display); font-size: 24px; text-align: center; }
+  .grid { display: grid; gap: 8px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  @media (min-width: 720px) { .grid { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
+  .tile { display: grid; gap: 0; justify-items: center; text-align: center; padding: 8px 4px 9px; min-height: 0; min-width: 0; border-radius: 4px 12px 4px 12px; }
+  .tile .num { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tile .a { font-family: var(--font-display); font-size: 17px; line-height: 1.25; }
+  .tile .l { font-size: 10.5px; color: var(--muted); line-height: 1.25; overflow-wrap: anywhere; }
+  .tile.cur { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--surface)); }
+  .tile.sel { border-color: var(--accent-2); box-shadow: inset 0 0 0 1px var(--accent-2); }
+
+  footer { color: var(--muted); font-size: 12.5px; text-align: center; max-width: 70ch; margin: 0 auto; }
+  @media (prefers-reduced-motion: reduce) { .dot { animation: none; } .seg { transition: none; } }
+
+  /* ---- versão instalável ---- */
+  html { background: var(--bg); padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body { margin: 0; }
+  [hidden] { display: none !important; }
+  .notify { display: grid; gap: 8px; justify-items: center; text-align: center; }
+  .note-msg { margin: 0; font-size: 12.5px; color: var(--muted); max-width: 52ch; }
+  button:disabled { opacity: .55; cursor: default; }
+</style>
+</head>
+<body>
+<svg class="lattice" aria-hidden="true" focusable="false">
+  <defs>
+    <pattern id="khatam" width="72" height="72" patternUnits="userSpaceOnUse">
+      <rect class="ln" x="18" y="18" width="36" height="36"/>
+      <rect class="ln" x="18" y="18" width="36" height="36" transform="rotate(45 36 36)"/>
+      <circle class="ln" cx="36" cy="36" r="9"/>
+      <path class="ln" d="M0 0L18 18M72 0L54 18M0 72L18 54M72 72L54 54"/>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#khatam)"/>
+</svg>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="star8" viewBox="-10 -10 20 20">
+    <rect x="-6" y="-6" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.2"/>
+    <rect x="-6" y="-6" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.2" transform="rotate(45)"/>
+  </symbol>
+</svg>
+
+<div class="page">
+  <header>
+    <p class="eyebrow">Manazil al-Qamar</p>
+    <h1>Mansões Lunares</h1>
+    <p class="ar-title" lang="ar" dir="rtl">منازل القمر</p>
+    <div class="orn" aria-hidden="true"><svg><use href="#star8"/></svg></div>
+  </header>
+
+  <section class="status" id="status" aria-live="polite"></section>
+
+  <section class="notify" id="notify">
+    <div class="btns">
+      <button type="button" id="note-btn" class="primary">Ativar notificação fixa</button>
+      <button type="button" id="note-now" hidden>Mostrar agora</button>
+    </div>
+    <p class="note-msg" id="note-msg"></p>
+  </section>
+
+  <main class="stage">
+    <div class="wheel-col">
+      <svg class="wheel" id="wheel" viewBox="0 0 420 420" role="group" aria-label="Roda das 28 mansões lunares"></svg>
+      <div class="controls">
+        <div class="btns">
+          <button type="button" id="prev">− 1 dia</button>
+          <button type="button" id="now" class="primary">Agora</button>
+          <button type="button" id="next">+ 1 dia</button>
+        </div>
+        <label class="when-label" for="when">Ver outra data e hora
+          <input type="datetime-local" id="when">
+        </label>
+      </div>
+    </div>
+
+    <div class="detail" id="detail"></div>
+  </main>
+
+  <section class="all">
+    <h2>As 28 mansões</h2>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <footer>
+    Posições calculadas no zodíaco tropical, com as mansões em partes iguais de 12°51′26″ a partir de 0° de Áries.
+    Os significados vêm da tradição árabe e do Picatrix, reunidos no artigo “The Arabs and the Moon”, de Stephanie Johnson.
+    São leituras tradicionais, não previsões.
+  </footer>
+</div>
+
+
+<script src="mansoes.js"></script>
+<script>
+(function () {
+  // ---- formatação ----
+  function fmtLon(l, floor) {
+    var tot = floor ? Math.floor(l * 60) : Math.round(l * 60);
+    tot = ((tot % 21600) + 21600) % 21600;
+    var s = Math.floor(tot / 1800), rem = tot % 1800;
+    var d = Math.floor(rem / 60), m = rem % 60;
+    return d + "°" + (m < 10 ? "0" : "") + m + "′ " + SIGNS[s];
+  }
+  var dtf = new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+  function fmtDate(ms) { return dtf.format(new Date(ms)).replace(".", ""); }
+  function rel(ms) {
+    var m = Math.round(Math.abs(ms) / 60000), h = Math.floor(m / 60), mm = m % 60;
+    if (h >= 24) return Math.floor(h / 24) + " d " + (h % 24) + " h";
+    if (h === 0) return mm + " min";
+    return h + " h " + (mm < 10 ? "0" : "") + mm + " min";
+  }
+  function localInput(d) {
+    function p(n) { return (n < 10 ? "0" : "") + n; }
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + "T" + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+
+  // ---- roda ----
+  var CX = 210, CY = 210, RO = 178, RI = 132;
+  function P(r, th) { var f = rad(180 + th); return [CX + r * Math.cos(f), CY - r * Math.sin(f)]; }
+  function f1(n) { return n.toFixed(2); }
+  function pt(p) { return f1(p[0]) + " " + f1(p[1]); }
+
+  function phasePath(r, e) {
+    var k = Math.cos(rad(e)), rx = Math.abs(k) * r, waxing = e < 180;
+    var limb = waxing ? 1 : 0;
+    var term = waxing ? (k > 0 ? 0 : 1) : (k > 0 ? 1 : 0);
+    return "M0 " + (-r) + " A" + r + " " + r + " 0 0 " + limb + " 0 " + r + " A" + f1(rx) + " " + r + " 0 0 " + term + " 0 " + (-r) + "Z";
+  }
+  function starPoints(R) {
+    var out = [], i;
+    for (i = 0; i < 16; i++) {
+      var r = i % 2 === 0 ? R : R * 0.72;
+      var a = rad(i * 22.5 - 90);
+      out.push(f1(CX + r * Math.cos(a)) + "," + f1(CY + r * Math.sin(a)));
+    }
+    return out.join(" ");
+  }
+
+  function drawWheel(lon, cur, idx, elong) {
+    var h = "", i;
+    h += '<circle class="ring" cx="' + CX + '" cy="' + CY + '" r="' + (RO + 8) + '"/>';
+    for (i = 0; i < 12; i++) {
+      var a = P(RO + 2, i * 30), b = P(RO + 10, i * 30), g = P(RO + 22, i * 30 + 15);
+      h += '<line class="ring" x1="' + f1(a[0]) + '" y1="' + f1(a[1]) + '" x2="' + f1(b[0]) + '" y2="' + f1(b[1]) + '"/>';
+      h += '<text class="sign" x="' + f1(g[0]) + '" y="' + f1(g[1]) + '" text-anchor="middle" dominant-baseline="central">' + GLYPHS[i] + '︎</text>';
+    }
+    for (i = 0; i < 28; i++) {
+      var t1 = i * SEG, t2 = (i + 1) * SEG;
+      var d = "M" + pt(P(RO, t1)) + " A" + RO + " " + RO + " 0 0 0 " + pt(P(RO, t2)) +
+              " L" + pt(P(RI, t2)) + " A" + RI + " " + RI + " 0 0 1 " + pt(P(RI, t1)) + "Z";
+      var cls = "seg" + (i === cur ? " cur" : "") + (i === idx && idx !== cur ? " sel" : "");
+      var c = P((RO + RI) / 2, t1 + SEG / 2);
+      h += '<path class="' + cls + '" d="' + d + '" data-i="' + i + '" tabindex="0" role="button" aria-label="Mansão ' + (i + 1) + ', ' + M[i][1] + '"/>';
+      h += '<text class="segnum' + (i === cur ? " cur" : "") + '" x="' + f1(c[0]) + '" y="' + f1(c[1]) + '" text-anchor="middle" dominant-baseline="central">' + (i + 1) + '</text>';
+    }
+    h += '<circle class="ring" cx="' + CX + '" cy="' + CY + '" r="104"/>';
+    h += '<polygon class="star-o" points="' + starPoints(98) + '"/>';
+    h += '<polygon class="star-i" points="' + starPoints(66) + '"/>';
+    h += '<text class="hub-n" x="' + CX + '" y="' + (CY + 6) + '" text-anchor="middle" dominant-baseline="central">' + (idx + 1) + '</text>';
+    h += '<text class="hub-s" x="' + CX + '" y="' + (CY + 34) + '" text-anchor="middle">de 28</text>';
+    var mp = P(118, lon);
+    h += '<g transform="translate(' + f1(mp[0]) + ' ' + f1(mp[1]) + ')" pointer-events="none">' +
+         '<circle class="moon-glow" r="17"/>' +
+         '<circle class="moon-base" r="9.5"/>' +
+         '<path class="moon-lit" d="' + phasePath(9.5, elong) + '"/></g>';
+    $("#wheel").innerHTML = h;
+  }
+
+  // ---- ficha ----
+  function archSvg(m, n) {
+    var len = m[0].length, size = len > 11 ? 30 : len > 8 ? 36 : len > 5 ? 44 : 54;
+    return '<svg class="arch" viewBox="0 0 200 150" role="img" aria-label="' + m[1] + '">' +
+      '<path class="frame" d="M8 150 V70 C8 36 72 22 100 4 C128 22 192 36 192 70 V150 Z"/>' +
+      '<path class="frame2" d="M18 150 V72 C18 44 74 32 100 17 C126 32 182 44 182 72 V150"/>' +
+      '<text class="n" x="100" y="52" text-anchor="middle">MANSÃO ' + n + '</text>' +
+      '<text class="ar" x="100" y="112" text-anchor="middle" lang="ar" direction="rtl" font-size="' + size + '">' + m[0] + '</text></svg>';
+  }
+  function list(items, cls, title) {
+    var body = items.length ? "<ul>" + items.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ul>"
+                            : '<p class="none">Nada específico na tradição.</p>';
+    return '<div class="' + cls + '"><h3>' + title + "</h3>" + body + "</div>";
+  }
+
+  function drawDetail(idx, cur, lon, at) {
+    var m = M[idx], isCur = idx === cur, n = idx + 1;
+    var s = idx * SEG, e = (idx + 1) * SEG;
+    var h = '<article class="card">';
+    h += '<div class="arch-wrap">' + archSvg(m, n) + '</div>';
+    h += '<div class="names"><span class="tag' + (isCur ? " now" : "") + '">' + (isCur ? "Lua nesta mansão" : "Consulta") + '</span>' +
+         '<h2>' + m[1] + '</h2><p class="pic">' + m[2] + '</p><p class="epi">' + m[3] + '</p></div>';
+    h += '<div class="range">De <b>' + fmtLon(s) + '</b> até <b>' + fmtLon(e) + '</b></div>';
+    if (isCur) {
+      var tin = boundary(at.getTime(), cur, -1), tout = boundary(at.getTime(), cur, 1);
+      var frac = Math.max(0, Math.min(1, (lon - s) / SEG));
+      h += '<div class="prog"><div class="bar" role="img" aria-label="' + Math.round(frac * 100) + '% da mansão percorrido"><i style="width:' + (frac * 100).toFixed(1) + '%"></i></div>' +
+           '<div class="times"><div><b>Entrou</b>' + (tin ? fmtDate(tin) + " · há " + rel(at.getTime() - tin) : "—") + '</div>' +
+           '<div><b>Sai</b>' + (tout ? fmtDate(tout) + " · em " + rel(tout - at.getTime()) : "—") + '</div></div></div>';
+    }
+    h += '<p class="txt">' + m[6] + '</p>';
+    h += '<div class="lists">' + list(m[4], "f", "Favorece") + list(m[5], "u", "Desfavorece") + '</div>';
+    h += '<div class="angel"><span>Anjo da mansão <b>' + m[7] + '</b></span><span>Posição da Lua <b>' + fmtLon(lon, true) + '</b></span></div>';
+    h += '</article>';
+    if (!isCur) h += '<button type="button" class="back primary" id="back">Voltar à mansão da Lua (' + (cur + 1) + ')</button>';
+    $("#detail").innerHTML = h;
+    var b = $("#back");
+    if (b) b.addEventListener("click", function () { sel = null; render(); });
+  }
+
+  function drawGrid(cur, idx) {
+    var h = "", i;
+    for (i = 0; i < 28; i++) {
+      h += '<button type="button" class="tile' + (i === cur ? " cur" : "") + (i === idx && idx !== cur ? " sel" : "") + '" data-i="' + i + '">' +
+           '<span class="num">' + (i + 1) + '</span><span class="a" lang="ar" dir="rtl">' + M[i][0] + '</span><span class="l">' + M[i][1] + '</span></button>';
+    }
+    $("#grid").innerHTML = h;
+  }
+
+  function drawStatus(lon, elong, at) {
+    var illum = Math.round((1 - Math.cos(rad(elong))) / 2 * 100);
+    var ph = PHASES[Math.floor(((elong + 22.5) % 360) / 45)];
+    $("#status").innerHTML =
+      '<div class="live"><i class="dot' + (live ? "" : " off") + '"></i>' + (live ? "Agora" : "Data escolhida") + '</div>' +
+      '<b>' + fmtDate(at.getTime()) + '</b>' +
+      '<span>Lua a ' + fmtLon(lon, true) + ' · ' + ph + ' · ' + illum + '% iluminada</span>';
+  }
+
+  // ---- estado ----
+  function $(s) { return document.querySelector(s); }
+  var at = new Date(), live = true, sel = null;
+
+  function render() {
+    var lon = moonLon(at), cur = Math.floor(lon / SEG) % 28;
+    var idx = sel === null ? cur : sel;
+    var elong = norm(lon - sunLon(at));
+    drawStatus(lon, elong, at);
+    drawWheel(lon, cur, idx, elong);
+    drawDetail(idx, cur, lon, at);
+    drawGrid(cur, idx);
+    $("#when").value = localInput(at);
+  }
+
+  function pick(e) {
+    var el = e.target.closest("[data-i]");
+    if (!el) return;
+    sel = +el.getAttribute("data-i");
+    render();
+    if (window.matchMedia("(max-width: 959px)").matches) $("#detail").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  $("#wheel").addEventListener("click", pick);
+  $("#wheel").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(e); }
+  });
+  $("#grid").addEventListener("click", pick);
+
+  function shift(days) { live = false; at = new Date(at.getTime() + days * 86400000); sel = null; render(); }
+  $("#prev").addEventListener("click", function () { shift(-1); });
+  $("#next").addEventListener("click", function () { shift(1); });
+  $("#now").addEventListener("click", function () { live = true; at = new Date(); sel = null; render(); });
+  $("#when").addEventListener("change", function (e) {
+    var d = new Date(e.target.value);
+    if (!isNaN(d.getTime())) { live = false; at = d; sel = null; render(); }
+  });
+
+  setInterval(function () {
+    if (!live) return;
+    at = new Date();
+    render();
+  }, 60000);
+
+  render();
+
+  // ---- notificação fixa da mansão atual ----
+  var noteBtn = $("#note-btn"), noteNow = $("#note-now"), noteMsg = $("#note-msg");
+  var swReg = null, noteTimer = null;
+
+  function noteOn() { try { return localStorage.getItem("ml-notify") === "1"; } catch (e) { return false; } }
+  function setNoteOn(v) { try { localStorage.setItem("ml-notify", v ? "1" : "0"); } catch (e) {} stateSet("notify", v ? "1" : "0"); }
+  function canNotify() { return window.isSecureContext && "Notification" in window && "serviceWorker" in navigator; }
+
+  function showNote(force) {
+    if (!swReg || !noteOn() || Notification.permission !== "granted") return Promise.resolve();
+    var n = buildNote(Date.now());
+    return stateGet("lastidx").then(function (last) {
+      if (!force && last === String(n.idx)) return;
+      return stateSet("lastidx", n.idx).then(function () { return swReg.showNotification(n.title, n.opts); });
+    });
+  }
+
+  function scheduleNote() {
+    clearTimeout(noteTimer);
+    if (!noteOn()) return;
+    var now = Date.now(), t = boundary(now, mansionAt(now), 1);
+    if (!t) return;
+    noteTimer = setTimeout(function () { showNote(false); scheduleNote(); }, Math.max(1000, t - now + 3000));
+  }
+
+  function noteUI() {
+    if (!canNotify()) {
+      noteBtn.disabled = true;
+      noteBtn.classList.remove("primary");
+      noteNow.hidden = true;
+      noteBtn.textContent = "Notificação fixa indisponível";
+      noteMsg.textContent = "Abra o app pelo endereço https do site e instale-o pelo menu do Chrome. Abrindo o arquivo solto, o navegador não permite.";
+      return;
+    }
+    var on = noteOn() && Notification.permission === "granted";
+    noteNow.hidden = !on;
+    noteBtn.classList.toggle("primary", !on);
+    noteBtn.disabled = false;
+    if (Notification.permission === "denied") {
+      noteBtn.disabled = true;
+      noteBtn.classList.remove("primary");
+      noteBtn.textContent = "Notificações bloqueadas";
+      noteMsg.textContent = "O Chrome bloqueou as notificações deste site. Libere nas configurações do site e recarregue.";
+    } else if (on) {
+      noteBtn.textContent = "Desativar notificação fixa";
+      noteMsg.textContent = "Ativa. Ela muda quando a Lua entra em outra mansão, com o app aberto ou em segundo plano.";
+    } else {
+      noteBtn.textContent = "Ativar notificação fixa";
+      noteMsg.textContent = "O Chrome vai pedir permissão. A notificação mostra a mansão atual e o horário de entrada e saída.";
+    }
+  }
+
+  function enableNote() {
+    Notification.requestPermission().then(function (p) {
+      if (p === "granted") {
+        setNoteOn(true);
+        showNote(true);
+        scheduleNote();
+        if (swReg && swReg.periodicSync) swReg.periodicSync.register("mansao-check", { minInterval: 3600000 }).catch(function () {});
+      }
+      noteUI();
+    });
+  }
+
+  function disableNote() {
+    setNoteOn(false);
+    clearTimeout(noteTimer);
+    if (swReg) swReg.getNotifications({ tag: "mansao" }).then(function (l) { l.forEach(function (n) { n.close(); }); });
+    noteUI();
+  }
+
+  noteBtn.addEventListener("click", function () {
+    if (noteOn() && Notification.permission === "granted") disableNote(); else enableNote();
+  });
+  noteNow.addEventListener("click", function () { showNote(true); });
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) { showNote(false); scheduleNote(); }
+  });
+
+  noteUI();
+  if (canNotify()) {
+    navigator.serviceWorker.register("sw.js")
+      .then(function () { return navigator.serviceWorker.ready; })
+      .then(function (reg) { swReg = reg; noteUI(); showNote(false); scheduleNote(); })
+      .catch(function () { noteMsg.textContent = "Não foi possível registrar o service worker. Abra o app pelo endereço https do site."; });
+  }
+
+})();
+</script>
+</body>
+</html>
